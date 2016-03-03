@@ -18,9 +18,14 @@ public interface MutableTreeNode extends TreeNode {
         }
     }
 
-    void set(String prefix, TreeNode value);
+    default MutableTreeNode move(String source, String destination) {
+        this.set(destination, this.remove(source));
+        return this;
+    }
 
-    void remove(String prefix);
+    MutableTreeNode set(String prefix, TreeNode value);
+
+    MutableTreeNode remove(String prefix);
 
     boolean isEmpty();
 }

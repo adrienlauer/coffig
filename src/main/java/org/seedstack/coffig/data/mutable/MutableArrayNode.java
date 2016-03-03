@@ -54,7 +54,7 @@ public class MutableArrayNode extends ArrayNode implements MutableTreeNode {
     }
 
     @Override
-    public void set(String name, TreeNode value) {
+    public MutableTreeNode set(String name, TreeNode value) {
         Prefix prefix = new Prefix(name);
         TreeNode treeNode;
         if (prefix.tail.isPresent()) {
@@ -69,6 +69,7 @@ public class MutableArrayNode extends ArrayNode implements MutableTreeNode {
         } else {
             childNodes.set(prefix.index, treeNode);
         }
+        return this;
     }
 
     private TreeNode getOrCreateTreeNode(Prefix prefix) {
@@ -83,7 +84,7 @@ public class MutableArrayNode extends ArrayNode implements MutableTreeNode {
     }
 
     @Override
-    public void remove(String name) {
+    public MutableTreeNode remove(String name) {
         Prefix prefix = new Prefix(name);
         if (prefix.tail.isPresent()) {
             if (isIndexPresent(prefix)) {
@@ -93,12 +94,14 @@ public class MutableArrayNode extends ArrayNode implements MutableTreeNode {
                 MutableTreeNode mutableTreeNode = (MutableTreeNode) treeNode;
                 mutableTreeNode.remove(prefix.tail.get());
                 if (mutableTreeNode.isEmpty()) {
+
                     childNodes.remove(prefix.index);
                 }
             }
         } else {
             childNodes.remove(prefix.index);
         }
+        return this;
     }
 
     private boolean isIndexPresent(Prefix prefix) {

@@ -7,6 +7,7 @@
  */
 package org.seedstack.coffig.data.mutable;
 
+import org.seedstack.coffig.PropertyNotFoundException;
 import org.seedstack.coffig.data.MapNode;
 import org.seedstack.coffig.data.NamedNode;
 import org.seedstack.coffig.data.TreeNode;
@@ -43,14 +44,16 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
     }
 
     @Override
-    public void set(String name, TreeNode value) {
+    public MutableTreeNode set(String name, TreeNode value) {
         Prefix prefix = new Prefix(name);
         if (prefix.tail.isPresent()) {
             MutableTreeNode nexNode = getOrCreateNode(prefix);
-            nexNode.set(prefix.tail.get(), value);
+            MutableTreeNode finalNode = nexNode.set(prefix.tail.get(), value);
             childNodes.put(prefix.head, nexNode);
+            return finalNode;
         } else {
             childNodes.put(prefix.head, value);
+            return (MutableTreeNode) value;
         }
     }
 
@@ -67,19 +70,26 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
     }
 
     @Override
-    public void remove(String name) {
+    public MutableTreeNode remove(String name) {
         Prefix prefix = new Prefix(name);
         if (prefix.tail.isPresent()) {
             if (childNodes.containsKey(prefix.head)) {
                 TreeNode treeNode = childNodes.get(prefix.head);
                 assertMutable(treeNode);
                 MutableTreeNode mutableTreeNode = (MutableTreeNode) treeNode;
-                mutableTreeNode.remove(prefix.tail.get());
-                if (mutableTreeNode.isEmpty()) {
-                    childNodes.remove(prefix.head);
-                }
+                MutableTreeNode removedNode = mutableTreeNode.remove(prefix.tail.get());
+                removeEmptyIntermediateNode(prefix, mutableTreeNode);
+                return removedNode;
+            } else {
+                throw new PropertyNotFoundException(name);
             }
         } else {
+            return (MutableTreeNode) childNodes.remove(prefix.head);
+        }
+    }
+
+    private void removeEmptyIntermediateNode(Prefix prefix, MutableTreeNode mutableTreeNode) {
+        if (mutableTreeNode.isEmpty()) {
             childNodes.remove(prefix.head);
         }
     }
