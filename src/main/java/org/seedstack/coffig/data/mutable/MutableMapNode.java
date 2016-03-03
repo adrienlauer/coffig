@@ -20,11 +20,12 @@ import static org.seedstack.coffig.data.mutable.MutableTreeNodeFactory.createFro
 public class MutableMapNode extends MapNode implements MutableTreeNode {
 
     public MutableMapNode(NamedNode... childNodes) {
-        super(childNodes);
+        super(Freezer.unfreeze(childNodes));
     }
 
+    @SuppressWarnings("unchecked")
     public MutableMapNode(Map<String, TreeNode> newChildNodes) {
-        super(newChildNodes);
+        super((Map)Freezer.unfreeze(newChildNodes));
     }
 
     public MutableMapNode() {
@@ -32,11 +33,12 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
     }
 
     public TreeNode put(String key, TreeNode value) {
-        return childNodes.put(key, value);
+        return childNodes.put(key, value.unfreeze());
     }
 
-    public void putAll(Map<? extends String, ? extends TreeNode> m) {
-        childNodes.putAll(m);
+    @SuppressWarnings("unchecked")
+    public void putAll(Map<String, TreeNode> m) {
+        childNodes.putAll(((Map)Freezer.unfreeze(m)));
     }
 
     public void clear() {
@@ -46,14 +48,15 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
     @Override
     public MutableTreeNode set(String name, TreeNode value) {
         Prefix prefix = new Prefix(name);
+        TreeNode treeNode = value.unfreeze();
         if (prefix.tail.isPresent()) {
             MutableTreeNode nexNode = getOrCreateNode(prefix);
-            MutableTreeNode finalNode = nexNode.set(prefix.tail.get(), value);
+            MutableTreeNode finalNode = nexNode.set(prefix.tail.get(), treeNode);
             childNodes.put(prefix.head, nexNode);
             return finalNode;
         } else {
-            childNodes.put(prefix.head, value);
-            return (MutableTreeNode) value;
+            childNodes.put(prefix.head, treeNode);
+            return (MutableTreeNode) treeNode;
         }
     }
 
@@ -61,7 +64,6 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
         MutableTreeNode mutableTreeNode;
         if (childNodes.containsKey(prefix.head)) {
             TreeNode treeNode = childNodes.get(prefix.head);
-            assertMutable(treeNode);
             mutableTreeNode = (MutableTreeNode) treeNode;
         } else {
             mutableTreeNode = createFromPrefix(prefix.tail.get());
@@ -75,7 +77,6 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
         if (prefix.tail.isPresent()) {
             if (childNodes.containsKey(prefix.head)) {
                 TreeNode treeNode = childNodes.get(prefix.head);
-                assertMutable(treeNode);
                 MutableTreeNode mutableTreeNode = (MutableTreeNode) treeNode;
                 MutableTreeNode removedNode = mutableTreeNode.remove(prefix.tail.get());
                 removeEmptyIntermediateNode(prefix, mutableTreeNode);
@@ -97,5 +98,17 @@ public class MutableMapNode extends MapNode implements MutableTreeNode {
     @Override
     public boolean isEmpty() {
         return childNodes.isEmpty();
+    }
+
+    @Override
+    public MutableTreeNode unfreeze() {
+        return this;
+    }
+
+    @Override
+    public TreeNode freeze() {
+        Map<String, TreeNode> nodes = new HashMap<>();
+        childNodes.forEach((key, val) -> nodes.put(key, ((MutableTreeNode) val).freeze()));
+        return new MapNode(nodes);
     }
 }
